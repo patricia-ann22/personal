@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Minus, X, Heart, Frown } from 'lucide-react';
-import { supabase, USERS, type User } from '@/lib/supabase';
+import { USERS, type User } from '@/lib/users';
 
 export interface BonusEntry {
   id: string;
@@ -19,12 +19,14 @@ export default function BonusModal({
   currentUser,
   otherUser,
   entries,
+  onSubmit,
 }: {
   open: boolean;
   onClose: () => void;
   currentUser: User;
   otherUser: User;
   entries: BonusEntry[];
+  onSubmit: (entry: Omit<BonusEntry, 'id' | 'created_at'>) => void;
 }) {
   const [mode, setMode] = useState<'add' | 'reduce'>('add');
   const [amount, setAmount] = useState(1);
@@ -50,16 +52,14 @@ export default function BonusModal({
     if (submitting) return;
     setSubmitting(true);
     const pts = mode === 'add' ? amount : -amount;
-    const { error } = await supabase.from('bonus_points').insert({
+    onSubmit({
       giver: currentUser,
       receiver: otherUser,
       points: pts,
       reason: reason.trim() || null,
     });
     setSubmitting(false);
-    if (!error) {
-      onClose();
-    }
+    onClose();
   };
 
   const myAwardedTotal = entries

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import LoginScreen from '@/components/login-screen';
 import ChatScreen from '@/components/chat-screen';
-import type { User } from '@/lib/supabase';
+import type { User } from '@/lib/users';
 
 const STORAGE_KEY = 'us-current-user';
 

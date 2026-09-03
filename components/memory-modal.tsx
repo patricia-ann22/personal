@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Calendar, Plus, ImageIcon, Video, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
-import { supabase, USERS, type User } from '@/lib/supabase';
+import { USERS, type User } from '@/lib/users';
 
 export interface Memory {
   id: string;
@@ -23,20 +23,24 @@ export default function MemoryModal({
   onClose,
   currentUser,
   initialMemory,
+  memories,
+  onAdd,
+  onDelete,
 }: {
   open: boolean;
   onClose: () => void;
   currentUser: User;
   initialMemory?: Memory | null;
+  memories: Memory[];
+  onAdd: (memory: Omit<Memory, 'id' | 'created_at'>) => void;
+  onDelete: (memory: Memory) => void;
 }) {
-  const [memories, setMemories] = useState<Memory[]>([]);
   const [view, setView] = useState<'calendar' | 'add' | 'detail'>('calendar');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth());
   const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
   const [detailMemory, setDetailMemory] = useState<Memory | null>(null);
 
-  // Add form state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [addDate, setAddDate] = useState(new Date().toISOString().slice(0, 10));
@@ -57,48 +61,12 @@ export default function MemoryModal({
         setDetailMemory(null);
       }
       setSelectedDate(null);
-      loadMemories();
     }
   }, [open, initialMemory]);
-
-  useEffect(() => {
-    if (!open) return;
-    const channel = supabase
-      .channel(`memories-realtime-${currentUser}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'memories' },
-        (payload) => {
-          setMemories((prev) => {
-            if (prev.some((m) => m.id === payload.new.id)) return prev;
-            return [...prev, payload.new as Memory];
-          });
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'DELETE', schema: 'public', table: 'memories' },
-        (payload) => {
-          const deletedId = payload.old.id;
-          setMemories((prev) => prev.filter((m) => m.id !== deletedId));
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [open, currentUser]);
-
-  const loadMemories = async () => {
-    const { data } = await supabase.from('memories').select('*').order('memory_date', { ascending: false });
-    if (data) setMemories(data as Memory[]);
-  };
 
   const isGirl = currentUser === 'tough_honey';
   const myFont = isGirl ? 'font-girl' : 'font-guy';
 
-  // Build calendar grid
   const firstDay = new Date(calendarYear, calendarMonth, 1).getDay();
   const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
   const calendarCells: (number | null)[] = [];
@@ -106,7 +74,6 @@ export default function MemoryModal({
   for (let d = 1; d <= daysInMonth; d++) calendarCells.push(d);
   while (calendarCells.length % 7 !== 0) calendarCells.push(null);
 
-  // Map dates to memories
   const memoriesByDate = new Map<string, Memory[]>();
   memories.forEach((m) => {
     const key = m.memory_date;
@@ -134,35 +101,25 @@ export default function MemoryModal({
     }
   };
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>, mediaType: 'image' | 'video') => {
+  const handleFileSelect = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    mediaType: 'image' | 'video',
+  ) => {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
 
     setUploading(true);
-    const ext = file.name.split('.').pop() || 'bin';
-    const fileName = `memories/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    const filePath = fileName;
-
-    const { error: uploadError } = await supabase.storage
-      .from('media')
-      .upload(filePath, file, { cacheControl: '3600', upsert: false });
-
-    if (uploadError) {
-      setUploading(false);
-      return;
-    }
-
-    const { data: urlData } = supabase.storage.from('media').getPublicUrl(filePath);
-    setUploadedUrl(urlData.publicUrl);
+    const url = URL.createObjectURL(file);
+    setUploadedUrl(url);
     setUploadedType(mediaType);
     setUploading(false);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!title.trim() || submitting) return;
     setSubmitting(true);
-    const { error } = await supabase.from('memories').insert({
+    onAdd({
       creator: currentUser,
       title: title.trim(),
       description: description.trim() || null,
@@ -171,10 +128,8 @@ export default function MemoryModal({
       media_type: uploadedType,
     });
     setSubmitting(false);
-    if (!error) {
-      resetForm();
-      setView('calendar');
-    }
+    resetForm();
+    setView('calendar');
   };
 
   const resetForm = () => {
@@ -185,23 +140,11 @@ export default function MemoryModal({
     setUploadedType(null);
   };
 
-  const deleteMemory = useCallback(async (mem: Memory) => {
-    const { error } = await supabase.from('memories').delete().eq('id', mem.id);
-    if (!error) {
-      setMemories((prev) => prev.filter((m) => m.id !== mem.id));
-      if (mem.media_url) {
-        try {
-          const url = new URL(mem.media_url);
-          const pathMatch = url.pathname.match(/\/media\/(.+)$/);
-          if (pathMatch) supabase.storage.from('media').remove([pathMatch[1]]);
-        } catch {
-          // ignore
-        }
-      }
-      setDetailMemory(null);
-      setView('calendar');
-    }
-  }, []);
+  const deleteMemory = useCallback((mem: Memory) => {
+    onDelete(mem);
+    setDetailMemory(null);
+    setView('calendar');
+  }, [onDelete]);
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr + 'T00:00:00');
@@ -216,10 +159,8 @@ export default function MemoryModal({
         className="w-full max-w-md animate-fade-up rounded-t-3xl bg-white p-6 shadow-2xl sm:rounded-3xl"
         style={{ maxHeight: '85vh', overflowY: 'auto' }}
       >
-        {/* Handle bar */}
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-neutral-200 sm:hidden" />
 
-        {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <div>
             <p className="text-xs uppercase tracking-wider text-neutral-400">Memory Lane</p>
@@ -247,10 +188,8 @@ export default function MemoryModal({
           </div>
         </div>
 
-        {/* CALENDAR VIEW */}
         {view === 'calendar' && (
           <>
-            {/* Month navigation */}
             <div className="mb-4 flex items-center justify-between">
               <button
                 onClick={prevMonth}
@@ -269,7 +208,6 @@ export default function MemoryModal({
               </button>
             </div>
 
-            {/* Day headers */}
             <div className="mb-2 grid grid-cols-7 gap-1">
               {DAYS.map((d, i) => (
                 <div key={i} className="text-center text-xs font-medium text-neutral-300">
@@ -278,7 +216,6 @@ export default function MemoryModal({
               ))}
             </div>
 
-            {/* Calendar grid */}
             <div className="grid grid-cols-7 gap-1">
               {calendarCells.map((day, i) => {
                 if (day === null) {
@@ -320,7 +257,6 @@ export default function MemoryModal({
               })}
             </div>
 
-            {/* Memories for selected date */}
             {selectedDate && (
               <div className="mt-4 border-t border-neutral-100 pt-4">
                 <p className="mb-3 text-xs uppercase tracking-wider text-neutral-400">
@@ -359,7 +295,6 @@ export default function MemoryModal({
               </div>
             )}
 
-            {/* Add memory button */}
             <button
               onClick={() => { resetForm(); setView('add'); }}
               className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-neutral-900 py-3.5 text-sm font-medium text-white transition-all hover:bg-neutral-800 active:scale-[0.98]"
@@ -370,10 +305,8 @@ export default function MemoryModal({
           </>
         )}
 
-        {/* ADD VIEW */}
         {view === 'add' && (
           <div className="space-y-5">
-            {/* Date */}
             <div>
               <p className="mb-2 text-xs text-neutral-400">Date</p>
               <input
@@ -388,7 +321,6 @@ export default function MemoryModal({
               />
             </div>
 
-            {/* Title */}
             <div>
               <p className="mb-2 text-xs text-neutral-400">Title</p>
               <input
@@ -404,7 +336,6 @@ export default function MemoryModal({
               />
             </div>
 
-            {/* Description */}
             <div>
               <p className="mb-2 text-xs text-neutral-400">Description (optional)</p>
               <textarea
@@ -420,7 +351,6 @@ export default function MemoryModal({
               />
             </div>
 
-            {/* Media upload */}
             <div>
               <p className="mb-2 text-xs text-neutral-400">Photo or Video (optional)</p>
               <input
@@ -474,7 +404,6 @@ export default function MemoryModal({
               )}
             </div>
 
-            {/* Submit */}
             <button
               onClick={handleSubmit}
               disabled={!title.trim() || submitting}
@@ -485,7 +414,6 @@ export default function MemoryModal({
           </div>
         )}
 
-        {/* DETAIL VIEW */}
         {view === 'detail' && detailMemory && (
           <div className="space-y-4">
             {detailMemory.media_url && detailMemory.media_type === 'image' && (

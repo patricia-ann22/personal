@@ -1,22 +1,15 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
 export type User = 'emerald' | 'tough_honey';
 
 export const USERS: Record<User, { name: string; password: string; color: string; font: string }> = {
   emerald: {
     name: 'Emerald',
-    password: 'betterone',
+    password: 'emerald',
     color: 'emerald',
     font: 'font-guy',
   },
   tough_honey: {
     name: 'Tough Honey',
-    password: 'bettertwo',
+    password: 'toughhoney',
     color: 'rose',
     font: 'font-girl',
   },

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Lock } from 'lucide-react';
-import { getUserByPassword, type User } from '@/lib/supabase';
+import { getUserByPassword, type User } from '@/lib/users';
 
 export default function LoginScreen({ onLogin }: { onLogin: (user: User) => void }) {
   const [password, setPassword] = useState('');

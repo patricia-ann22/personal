@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Send, ImageIcon, Video, Gift, Plus, Trash2, Calendar } from 'lucide-react';
-import { supabase, USERS, type User } from '@/lib/supabase';
+import { USERS, type User } from '@/lib/users';
 import BonusModal, { type BonusEntry } from './bonus-modal';
 import MemoryModal, { type Memory } from './memory-modal';
 
@@ -14,6 +14,12 @@ interface Message {
   media_type: string | null;
   created_at: string;
 }
+
+// Client-side id generator; swap for a real DB id when wired up.
+const newId = () =>
+  typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 export default function ChatScreen({
   currentUser,
@@ -28,13 +34,13 @@ export default function ChatScreen({
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [bonusEntries, setBonusEntries] = useState<BonusEntry[]>([]);
+  const [memories, setMemories] = useState<Memory[]>([]);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [bonusOpen, setBonusOpen] = useState(false);
   const [memoryOpen, setMemoryOpen] = useState(false);
   const [initialMemory, setInitialMemory] = useState<Memory | null>(null);
-  const [memories, setMemories] = useState<Memory[]>([]);
   const [bonusPulse, setBonusPulse] = useState(false);
   const [previewMedia, setPreviewMedia] = useState<Message | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Message | null>(null);
@@ -46,13 +52,10 @@ export default function ChatScreen({
   const isGirl = currentUser === 'tough_honey';
   const myFont = isGirl ? 'font-girl' : 'font-guy';
 
-  // Total bonus points the OTHER person has given to me
   const myTotalBonus = bonusEntries
     .filter((e) => e.receiver === currentUser)
     .reduce((sum, e) => sum + e.points, 0);
 
-  // Keyboard-safe: set container height to the visual viewport height so the
-  // flex layout shrinks naturally when the keyboard opens — no margin hacks.
   useEffect(() => {
     if (typeof window === 'undefined' || !window.visualViewport) return;
     const vv = window.visualViewport;
@@ -68,157 +71,78 @@ export default function ChatScreen({
     };
   }, []);
 
-  // Load messages + bonus entries
-  useEffect(() => {
-    loadData();
-
-    // Realtime subscription for messages (INSERT + DELETE)
-    const msgChannel = supabase
-      .channel(`messages-realtime-${currentUser}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages' },
-        (payload) => {
-          setMessages((prev) => {
-            if (prev.some((m) => m.id === payload.new.id)) return prev;
-            return [...prev, payload.new as Message];
-          });
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'DELETE', schema: 'public', table: 'messages' },
-        (payload) => {
-          const deletedId = payload.old.id;
-          setMessages((prev) => prev.filter((m) => m.id !== deletedId));
-        }
-      )
-      .subscribe();
-
-    // Realtime subscription for bonus points
-    const bonusChannel = supabase
-      .channel(`bonus-realtime-${currentUser}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'bonus_points' },
-        (payload) => {
-          setBonusEntries((prev) => {
-            if (prev.some((e) => e.id === payload.new.id)) return prev;
-            return [...prev, payload.new as BonusEntry];
-          });
-          const entry = payload.new as BonusEntry;
-          if (entry.receiver === currentUser) {
-            setBonusPulse(true);
-            setTimeout(() => setBonusPulse(false), 400);
-          }
-        }
-      )
-      .subscribe();
-
-    // Realtime subscription for memories
-    const memChannel = supabase
-      .channel(`memories-realtime-${currentUser}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'memories' },
-        (payload) => {
-          setMemories((prev) => {
-            if (prev.some((m) => m.id === payload.new.id)) return prev;
-            return [payload.new as Memory, ...prev];
-          });
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'DELETE', schema: 'public', table: 'memories' },
-        (payload) => {
-          const deletedId = payload.old.id;
-          setMemories((prev) => prev.filter((m) => m.id !== deletedId));
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(msgChannel);
-      supabase.removeChannel(bonusChannel);
-      supabase.removeChannel(memChannel);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser]);
-
-  const loadData = async () => {
-    const [msgRes, bonusRes, memRes] = await Promise.all([
-      supabase.from('messages').select('*').order('created_at', { ascending: true }).limit(200),
-      supabase.from('bonus_points').select('*').order('created_at', { ascending: true }),
-      supabase.from('memories').select('*').order('memory_date', { ascending: false }),
-    ]);
-    if (msgRes.data) setMessages(msgRes.data as Message[]);
-    if (bonusRes.data) setBonusEntries(bonusRes.data as BonusEntry[]);
-    if (memRes.data) setMemories(memRes.data as Memory[]);
-  };
-
-  // Auto-scroll to bottom
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
 
-  const deleteMessage = useCallback(async (msg: Message) => {
-    const { error } = await supabase.from('messages').delete().eq('id', msg.id);
-    if (!error) {
-      setMessages((prev) => prev.filter((m) => m.id !== msg.id));
-      // Also remove the media from storage
-      if (msg.media_url) {
-        const url = new URL(msg.media_url);
-        const pathMatch = url.pathname.match(/\/media\/(.+)$/);
-        if (pathMatch) {
-          supabase.storage.from('media').remove([pathMatch[1]]);
-        }
-      }
-    }
+  const deleteMessage = useCallback((msg: Message) => {
+    setMessages((prev) => prev.filter((m) => m.id !== msg.id));
   }, []);
 
-  const sendText = async () => {
+  const sendText = () => {
     if (!text.trim() || sending) return;
     setSending(true);
-    const { error } = await supabase.from('messages').insert({
-      sender: currentUser,
-      content: text.trim(),
-    });
-    if (!error) setText('');
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: newId(),
+        sender: currentUser,
+        content: text.trim(),
+        media_url: null,
+        media_type: null,
+        created_at: new Date().toISOString(),
+      },
+    ]);
+    setText('');
     setSending(false);
   };
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>, mediaType: 'image' | 'video') => {
+  const handleFileSelect = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    mediaType: 'image' | 'video',
+  ) => {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
 
     setUploading(true);
-    const ext = file.name.split('.').pop() || 'bin';
-    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    const filePath = `${mediaType}/${fileName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('media')
-      .upload(filePath, file, { cacheControl: '3600', upsert: false });
-
-    if (uploadError) {
-      setUploading(false);
-      return;
-    }
-
-    const { data: urlData } = supabase.storage.from('media').getPublicUrl(filePath);
-    const mediaUrl = urlData.publicUrl;
-
-    await supabase.from('messages').insert({
-      sender: currentUser,
-      media_url: mediaUrl,
-      media_type: mediaType,
-    });
-
+    const mediaUrl = URL.createObjectURL(file);
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: newId(),
+        sender: currentUser,
+        content: null,
+        media_url: mediaUrl,
+        media_type: mediaType,
+        created_at: new Date().toISOString(),
+      },
+    ]);
     setUploading(false);
+  };
+
+  const addBonus = (entry: Omit<BonusEntry, 'id' | 'created_at'>) => {
+    setBonusEntries((prev) => [
+      ...prev,
+      { ...entry, id: newId(), created_at: new Date().toISOString() },
+    ]);
+    if (entry.receiver === currentUser) {
+      setBonusPulse(true);
+      setTimeout(() => setBonusPulse(false), 400);
+    }
+  };
+
+  const addMemory = (mem: Omit<Memory, 'id' | 'created_at'>) => {
+    setMemories((prev) => [
+      { ...mem, id: newId(), created_at: new Date().toISOString() },
+      ...prev,
+    ]);
+  };
+
+  const deleteMemory = (mem: Memory) => {
+    setMemories((prev) => prev.filter((m) => m.id !== mem.id));
   };
 
   const formatTime = (dateStr: string) => {
@@ -239,7 +163,6 @@ export default function ChatScreen({
     >
       {/* Header */}
       <header className="flex items-center justify-between border-b border-neutral-100 px-4 py-3">
-        {/* Memory button — opposite bonus */}
         <button
           onClick={() => setMemoryOpen(true)}
           className="flex items-center gap-1.5 rounded-full bg-neutral-900 px-3 py-1.5 transition-all active:scale-95"
@@ -260,7 +183,6 @@ export default function ChatScreen({
           </button>
         </div>
 
-        {/* Bonus counter */}
         <button
           onClick={() => setBonusOpen(true)}
           className="flex items-center gap-1.5 rounded-full bg-neutral-900 px-3 py-1.5 transition-all active:scale-95"
@@ -275,7 +197,6 @@ export default function ChatScreen({
         </button>
       </header>
 
-      {/* Memory strip — thin horizontal scroll of recent memories */}
       {memories.length > 0 && (
         <div className="border-b border-neutral-100 bg-amber-50/50 px-4 py-2">
           <div className="mx-auto flex max-w-md gap-2 overflow-x-auto memory-scroll pb-1">
@@ -336,7 +257,6 @@ export default function ChatScreen({
                   mine ? 'flex-row-reverse' : 'flex-row'
                 }`}
               >
-                {/* Avatar */}
                 <div className="w-7 flex-shrink-0">
                   {showAvatar && (
                     <div
@@ -349,7 +269,6 @@ export default function ChatScreen({
                   )}
                 </div>
 
-                {/* Bubble */}
                 <div
                   className={`group relative max-w-[75%] rounded-2xl px-4 py-2.5 ${
                     mine
@@ -383,7 +302,6 @@ export default function ChatScreen({
                   <p className="mt-1 text-right text-[10px] text-neutral-400">
                     {formatTime(msg.created_at)}
                   </p>
-                  {/* Delete button for own messages */}
                   {mine && (
                     <button
                       onClick={() => setDeleteTarget(msg)}
@@ -464,24 +382,25 @@ export default function ChatScreen({
         </div>
       </div>
 
-      {/* Bonus Modal */}
       <BonusModal
         open={bonusOpen}
         onClose={() => setBonusOpen(false)}
         currentUser={currentUser}
         otherUser={otherUser}
         entries={bonusEntries}
+        onSubmit={addBonus}
       />
 
-      {/* Memory Modal */}
       <MemoryModal
         open={memoryOpen}
         onClose={() => { setMemoryOpen(false); setInitialMemory(null); }}
         currentUser={currentUser}
         initialMemory={initialMemory}
+        memories={memories}
+        onAdd={addMemory}
+        onDelete={deleteMemory}
       />
 
-      {/* Image preview lightbox */}
       {previewMedia && (
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-4"
@@ -499,7 +418,6 @@ export default function ChatScreen({
         </div>
       )}
 
-      {/* Delete confirmation */}
       {deleteTarget && (
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-6 backdrop-blur-sm"
