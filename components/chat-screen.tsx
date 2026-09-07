@@ -26,7 +26,7 @@ export default function ChatScreen({
   onLogout: () => void;
 }) {
   const otherUser: User = currentUser === 'cutie' ? 'tough_honey' : 'cutie';
-  const userMeta = USERS[currentUser];
+
   const otherMeta = USERS[otherUser];
 
   const messages = useQuery(api.messages.list) ?? [];
