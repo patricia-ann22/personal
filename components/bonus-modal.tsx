@@ -26,7 +26,7 @@ export default function BonusModal({
   currentUser: User;
   otherUser: User;
   entries: BonusEntry[];
-  onSubmit: (entry: Omit<BonusEntry, 'id' | 'created_at'>) => void;
+  onSubmit: (entry: Omit<BonusEntry, 'id' | 'created_at'>) => void | Promise<void>;
 }) {
   const [mode, setMode] = useState<'add' | 'reduce'>('add');
   const [amount, setAmount] = useState(1);
@@ -52,7 +52,7 @@ export default function BonusModal({
     if (submitting) return;
     setSubmitting(true);
     const pts = mode === 'add' ? amount : -amount;
-    onSubmit({
+    await onSubmit({
       giver: currentUser,
       receiver: otherUser,
       points: pts,

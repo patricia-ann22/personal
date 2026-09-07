@@ -13,7 +13,7 @@ export default function Home() {
 
   useEffect(() => {
     const saved = typeof window !== 'undefined' ? sessionStorage.getItem(STORAGE_KEY) : null;
-    if (saved === 'emerald' || saved === 'tough_honey') {
+    if (saved === 'cutie' || saved === 'tough_honey') {
       setUser(saved);
     }
     setHydrated(true);

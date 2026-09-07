@@ -1,7 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Send, ImageIcon, Video, Gift, Plus, Trash2, Calendar } from 'lucide-react';
+import { useMutation, useQuery } from 'convex/react';
+import { api } from '@/convex/_generated/api';
+import { UploadButton } from '@/utils/uploadthing';
 import { USERS, type User } from '@/lib/users';
 import BonusModal, { type BonusEntry } from './bonus-modal';
 import MemoryModal, { type Memory } from './memory-modal';
@@ -15,12 +18,6 @@ interface Message {
   created_at: string;
 }
 
-// Client-side id generator; swap for a real DB id when wired up.
-const newId = () =>
-  typeof crypto !== 'undefined' && 'randomUUID' in crypto
-    ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-
 export default function ChatScreen({
   currentUser,
   onLogout,
@@ -28,13 +25,22 @@ export default function ChatScreen({
   currentUser: User;
   onLogout: () => void;
 }) {
-  const otherUser: User = currentUser === 'emerald' ? 'tough_honey' : 'emerald';
+  const otherUser: User = currentUser === 'cutie' ? 'tough_honey' : 'cutie';
   const userMeta = USERS[currentUser];
   const otherMeta = USERS[otherUser];
 
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [bonusEntries, setBonusEntries] = useState<BonusEntry[]>([]);
-  const [memories, setMemories] = useState<Memory[]>([]);
+  const messages = useQuery(api.messages.list) ?? [];
+  const bonusHistory = useQuery(api.bonusPoints.forPair, {
+    currentUser,
+    otherUser,
+  });
+  const bonusEntries = bonusHistory?.entries ?? [];
+  const memories = useQuery(api.memories.list) ?? [];
+  const sendMessage = useMutation(api.messages.send);
+  const removeMessage = useMutation(api.messages.remove);
+  const addBonusEntry = useMutation(api.bonusPoints.add);
+  const addMemoryEntry = useMutation(api.memories.add);
+  const removeMemoryEntry = useMutation(api.memories.remove);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -46,15 +52,11 @@ export default function ChatScreen({
   const [deleteTarget, setDeleteTarget] = useState<Message | null>(null);
   const [viewportHeight, setViewportHeight] = useState('100vh');
   const scrollRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
 
   const isGirl = currentUser === 'tough_honey';
   const myFont = isGirl ? 'font-girl' : 'font-guy';
 
-  const myTotalBonus = bonusEntries
-    .filter((e) => e.receiver === currentUser)
-    .reduce((sum, e) => sum + e.points, 0);
+  const myTotalBonus = bonusHistory?.receivedTotal ?? 0;
 
   useEffect(() => {
     if (typeof window === 'undefined' || !window.visualViewport) return;
@@ -77,72 +79,49 @@ export default function ChatScreen({
     }
   }, [messages]);
 
-  const deleteMessage = useCallback((msg: Message) => {
-    setMessages((prev) => prev.filter((m) => m.id !== msg.id));
-  }, []);
+  const deleteMessage = async (msg: Message) => {
+    await removeMessage({ id: msg.id as never });
+  };
 
-  const sendText = () => {
+  const sendText = async () => {
     if (!text.trim() || sending) return;
     setSending(true);
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: newId(),
-        sender: currentUser,
-        content: text.trim(),
-        media_url: null,
-        media_type: null,
-        created_at: new Date().toISOString(),
-      },
-    ]);
-    setText('');
-    setSending(false);
+    try {
+      await sendMessage({ sender: currentUser, content: text.trim() });
+      setText('');
+    } finally {
+      setSending(false);
+    }
   };
 
-  const handleFileSelect = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    mediaType: 'image' | 'video',
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = '';
-
+  const addUploadedMessage = async (url: string, mediaType: 'image' | 'video') => {
     setUploading(true);
-    const mediaUrl = URL.createObjectURL(file);
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: newId(),
-        sender: currentUser,
-        content: null,
-        media_url: mediaUrl,
-        media_type: mediaType,
-        created_at: new Date().toISOString(),
-      },
-    ]);
-    setUploading(false);
+    try {
+      await sendMessage({ sender: currentUser, media_url: url, media_type: mediaType });
+    } finally {
+      setUploading(false);
+    }
   };
 
-  const addBonus = (entry: Omit<BonusEntry, 'id' | 'created_at'>) => {
-    setBonusEntries((prev) => [
-      ...prev,
-      { ...entry, id: newId(), created_at: new Date().toISOString() },
-    ]);
+  const addBonus = async (entry: Omit<BonusEntry, 'id' | 'created_at'>) => {
+    await addBonusEntry({ ...entry, reason: entry.reason ?? undefined });
     if (entry.receiver === currentUser) {
       setBonusPulse(true);
       setTimeout(() => setBonusPulse(false), 400);
     }
   };
 
-  const addMemory = (mem: Omit<Memory, 'id' | 'created_at'>) => {
-    setMemories((prev) => [
-      { ...mem, id: newId(), created_at: new Date().toISOString() },
-      ...prev,
-    ]);
+  const addMemory = async (mem: Omit<Memory, 'id' | 'created_at'>) => {
+    await addMemoryEntry({
+      ...mem,
+      description: mem.description ?? undefined,
+      media_url: mem.media_url ?? undefined,
+      media_type: mem.media_type === 'image' || mem.media_type === 'video' ? mem.media_type : undefined,
+    });
   };
 
-  const deleteMemory = (mem: Memory) => {
-    setMemories((prev) => prev.filter((m) => m.id !== mem.id));
+  const deleteMemory = async (mem: Memory) => {
+    await removeMemoryEntry({ id: mem.id as never });
   };
 
   const formatTime = (dateStr: string) => {
@@ -328,33 +307,28 @@ export default function ChatScreen({
       {/* Input bar */}
       <div className="border-t border-neutral-100 bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <div className="mx-auto flex max-w-md items-center gap-2">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => handleFileSelect(e, 'image')}
+          <UploadButton
+            endpoint="mediaUploader"
+            onUploadBegin={() => setUploading(true)}
+            onClientUploadComplete={(files) => {
+              const file = files[0];
+              if (file) void addUploadedMessage(file.ufsUrl, file.type.startsWith('image/') ? 'image' : 'video');
+            }}
+            onUploadError={() => setUploading(false)}
+            appearance={{ button: 'h-10 w-10 rounded-full bg-transparent p-0 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600' }}
+            content={{ button: <ImageIcon className="h-5 w-5" />, allowedContent: '' }}
           />
-          <input
-            ref={videoInputRef}
-            type="file"
-            accept="video/*"
-            className="hidden"
-            onChange={(e) => handleFileSelect(e, 'video')}
+          <UploadButton
+            endpoint="mediaUploader"
+            onUploadBegin={() => setUploading(true)}
+            onClientUploadComplete={(files) => {
+              const file = files[0];
+              if (file) void addUploadedMessage(file.ufsUrl, 'video');
+            }}
+            onUploadError={() => setUploading(false)}
+            appearance={{ button: 'h-10 w-10 rounded-full bg-transparent p-0 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600' }}
+            content={{ button: <Video className="h-5 w-5" />, allowedContent: '' }}
           />
-
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600"
-          >
-            <ImageIcon className="h-5 w-5" />
-          </button>
-          <button
-            onClick={() => videoInputRef.current?.click()}
-            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600"
-          >
-            <Video className="h-5 w-5" />
-          </button>
 
           <input
             type="text"

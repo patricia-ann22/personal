@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { X, Calendar, Plus, ImageIcon, Video, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { USERS, type User } from '@/lib/users';
+import { UploadButton } from '@/utils/uploadthing';
 
 export interface Memory {
   id: string;
@@ -32,8 +33,8 @@ export default function MemoryModal({
   currentUser: User;
   initialMemory?: Memory | null;
   memories: Memory[];
-  onAdd: (memory: Omit<Memory, 'id' | 'created_at'>) => void;
-  onDelete: (memory: Memory) => void;
+  onAdd: (memory: Omit<Memory, 'id' | 'created_at'>) => void | Promise<void>;
+  onDelete: (memory: Memory) => void | Promise<void>;
 }) {
   const [view, setView] = useState<'calendar' | 'add' | 'detail'>('calendar');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -45,11 +46,8 @@ export default function MemoryModal({
   const [description, setDescription] = useState('');
   const [addDate, setAddDate] = useState(new Date().toISOString().slice(0, 10));
   const [submitting, setSubmitting] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
   const [uploadedType, setUploadedType] = useState<'image' | 'video' | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
@@ -101,35 +99,23 @@ export default function MemoryModal({
     }
   };
 
-  const handleFileSelect = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    mediaType: 'image' | 'video',
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = '';
-
-    setUploading(true);
-    const url = URL.createObjectURL(file);
-    setUploadedUrl(url);
-    setUploadedType(mediaType);
-    setUploading(false);
-  };
-
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!title.trim() || submitting) return;
     setSubmitting(true);
-    onAdd({
-      creator: currentUser,
-      title: title.trim(),
-      description: description.trim() || null,
-      memory_date: addDate,
-      media_url: uploadedUrl,
-      media_type: uploadedType,
-    });
-    setSubmitting(false);
-    resetForm();
-    setView('calendar');
+    try {
+      await onAdd({
+        creator: currentUser,
+        title: title.trim(),
+        description: description.trim() || null,
+        memory_date: addDate,
+        media_url: uploadedUrl,
+        media_type: uploadedType,
+      });
+      resetForm();
+      setView('calendar');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const resetForm = () => {
@@ -141,7 +127,7 @@ export default function MemoryModal({
   };
 
   const deleteMemory = useCallback((mem: Memory) => {
-    onDelete(mem);
+    void onDelete(mem);
     setDetailMemory(null);
     setView('calendar');
   }, [onDelete]);
@@ -353,21 +339,6 @@ export default function MemoryModal({
 
             <div>
               <p className="mb-2 text-xs text-neutral-400">Photo or Video (optional)</p>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => handleFileSelect(e, 'image')}
-              />
-              <input
-                ref={videoInputRef}
-                type="file"
-                accept="video/*"
-                className="hidden"
-                onChange={(e) => handleFileSelect(e, 'video')}
-              />
-
               {uploadedUrl ? (
                 <div className="relative rounded-2xl bg-neutral-50 p-2">
                   {uploadedType === 'image' ? (
@@ -384,22 +355,19 @@ export default function MemoryModal({
                 </div>
               ) : (
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
-                    className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-neutral-200 bg-neutral-50 py-3 text-sm text-neutral-500 transition-all hover:bg-neutral-100 disabled:opacity-50"
-                  >
-                    <ImageIcon className="h-4 w-4" />
-                    {uploading ? 'Uploading...' : 'Photo'}
-                  </button>
-                  <button
-                    onClick={() => videoInputRef.current?.click()}
-                    disabled={uploading}
-                    className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-neutral-200 bg-neutral-50 py-3 text-sm text-neutral-500 transition-all hover:bg-neutral-100 disabled:opacity-50"
-                  >
-                    <Video className="h-4 w-4" />
-                    {uploading ? 'Uploading...' : 'Video'}
-                  </button>
+                  <UploadButton
+                    endpoint="mediaUploader"
+                    onClientUploadComplete={(files) => {
+                      const file = files[0];
+                      if (file) {
+                        setUploadedUrl(file.ufsUrl);
+                        setUploadedType(file.type.startsWith('image/') ? 'image' : 'video');
+                      }
+                    }}
+                    onUploadError={() => undefined}
+                    appearance={{ button: 'flex-1 rounded-2xl border border-neutral-200 bg-neutral-50 py-3 text-sm text-neutral-500 hover:bg-neutral-100' }}
+                    content={{ button: <><ImageIcon className="mr-2 h-4 w-4" />Photo or Video</>, allowedContent: '' }}
+                  />
                 </div>
               )}
             </div>

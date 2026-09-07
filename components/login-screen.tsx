@@ -60,7 +60,7 @@ export default function LoginScreen({ onLogin }: { onLogin: (user: User) => void
         </form>
 
         <div className="mt-8 flex items-center justify-center gap-6 text-xs text-neutral-300">
-          <span className="font-guy">Emerald</span>
+          <span className="font-guy">Cutie</span>
           <span className="text-neutral-200">&</span>
           <span className="font-girl font-medium">Tough Honey</span>
         </div>
