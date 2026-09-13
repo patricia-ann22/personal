@@ -300,6 +300,7 @@ export default function ChatScreen({
                     <button
                       onClick={() => setDeleteTarget(msg)}
                       className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-neutral-200 text-neutral-500 opacity-0 shadow-sm transition-all hover:bg-red-100 hover:text-red-500 group-hover:opacity-100 active:scale-90"
+                      aria-label="Delete message"
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>
@@ -330,7 +331,7 @@ export default function ChatScreen({
               if (file) void addUploadedMessage(file.ufsUrl, file.type.startsWith('image/') ? 'image' : 'video');
             }}
             onUploadError={() => setUploading(false)}
-            appearance={{ button: 'flex h-10 items-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-50 px-3 text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900' }}
+            appearance={{ button: 'flex h-10 items-center gap-1.5 rounded-full bg-emerald-200 text-emerald-800 px-3.5 shadow-sm transition-transform active:scale-95 hover:bg-emerald-900' }}
             content={{ button: <><ImageIcon className="h-4 w-4" /><span className="text-xs font-semibold">Photo</span></>, allowedContent: '' }}
           />
           <UploadButton
@@ -341,7 +342,7 @@ export default function ChatScreen({
               if (file) void addUploadedMessage(file.ufsUrl, 'video');
             }}
             onUploadError={() => setUploading(false)}
-            appearance={{ button: 'flex h-10 items-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-50 px-3 text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900' }}
+            appearance={{ button: 'flex h-10 items-center gap-1.5 rounded-full bg-emerald-200 text-emerald-800 px-3.5 shadow-sm transition-transform active:scale-95 hover:bg-emerald-900' }}
             content={{ button: <><Video className="h-4 w-4" /><span className="text-xs font-semibold">Video</span></>, allowedContent: '' }}
           />
 
