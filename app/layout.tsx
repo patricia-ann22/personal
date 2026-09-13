@@ -1,17 +1,8 @@
 import './globals.css';
 import type { Metadata } from 'next';
-import { ThemeProvider } from 'next-themes'
+import { ThemeProvider } from 'next-themes';
 import { ConvexClientProvider } from "./ConvexClientProvider";
 
-export default function app({ Component, pageProps }) {
-  return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <ConvexClientProvider>
-        <Component {...pageProps} />
-      </ConvexClientProvider>
-    </ThemeProvider>
-  );
-}
 export const metadata: Metadata = {
   title: 'Us',
   description: 'A private space for two',
@@ -31,7 +22,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="bg-background text-foreground antialiased transition-colors duration-300">
-        <ConvexClientProvider>{children}</ConvexClientProvider>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <ConvexClientProvider>
+            {children}
+          </ConvexClientProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

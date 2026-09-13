@@ -258,10 +258,13 @@ export default function MemoryModal({
                         className="flex w-full items-center gap-3 rounded-xl bg-neutral-50 px-3 py-3 text-left transition-colors hover:bg-neutral-100"
                       >
                         {mem.media_url && mem.media_type === 'image' ? (
-                          <img src={mem.media_url} alt="" className="h-12 w-12 flex-shrink-0 rounded-lg object-cover" />
+                          <div className="relative flex-shrink-0">
+                            <img src={mem.media_url} alt="" className="h-12 w-12 rounded-lg object-cover" />
+                            <ImageIcon className="absolute bottom-1 right-1 h-3.5 w-3.5 rounded-sm bg-black/55 p-0.5 text-white" />
+                          </div>
                         ) : mem.media_url && mem.media_type === 'video' ? (
                           <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-neutral-200">
-                            <Video className="h-5 w-5 text-neutral-400" />
+                            <Video className="h-5 w-5 text-neutral-500" />
                           </div>
                         ) : (
                           <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-neutral-200">

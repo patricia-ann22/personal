@@ -191,10 +191,13 @@ export default function ChatScreen({
                   className="flex flex-shrink-0 items-center gap-2 rounded-xl bg-white/80 px-2.5 py-1.5 shadow-sm transition-all hover:bg-white active:scale-95"
                 >
                   {mem.media_url && mem.media_type === 'image' ? (
-                    <img src={mem.media_url} alt="" className="h-7 w-7 flex-shrink-0 rounded-md object-cover" />
+                    <div className="relative flex-shrink-0">
+                      <img src={mem.media_url} alt="" className="h-7 w-7 rounded-md object-cover" />
+                      <ImageIcon className="absolute bottom-0.5 right-0.5 h-2.5 w-2.5 rounded-sm bg-black/55 p-0.5 text-white" />
+                    </div>
                   ) : mem.media_url && mem.media_type === 'video' ? (
                     <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-neutral-100">
-                      <Video className="h-3.5 w-3.5 text-neutral-400" />
+                      <Video className="h-3.5 w-3.5 text-neutral-500" />
                     </div>
                   ) : (
                     <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-neutral-100">
@@ -258,20 +261,32 @@ export default function ChatScreen({
                   } ${senderMeta.font}`}
                 >
                   {msg.media_type === 'image' && msg.media_url && (
-                    <img
-                      src={msg.media_url}
-                      alt="shared photo"
-                      className="mb-1 max-w-full cursor-pointer rounded-xl"
-                      onClick={() => setPreviewMedia(msg)}
-                    />
+                    <div className="relative mb-1">
+                      <img
+                        src={msg.media_url}
+                        alt="shared photo"
+                        className="max-w-full cursor-pointer rounded-xl"
+                        onClick={() => setPreviewMedia(msg)}
+                      />
+                      <span className="pointer-events-none absolute left-2 top-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10px] font-semibold text-white">
+                        <ImageIcon className="h-3 w-3" />
+                        Photo
+                      </span>
+                    </div>
                   )}
                   {msg.media_type === 'video' && msg.media_url && (
-                    <video
-                      src={msg.media_url}
-                      controls
-                      playsInline
-                      className="mb-1 max-w-full rounded-xl"
-                    />
+                    <div className="relative mb-1">
+                      <video
+                        src={msg.media_url}
+                        controls
+                        playsInline
+                        className="max-w-full rounded-xl"
+                      />
+                      <span className="pointer-events-none absolute left-2 top-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10px] font-semibold text-white">
+                        <Video className="h-3 w-3" />
+                        Video
+                      </span>
+                    </div>
                   )}
                   {msg.content && (
                     <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
