@@ -1,7 +1,17 @@
 import './globals.css';
 import type { Metadata } from 'next';
+import { ThemeProvider } from 'next-themes'
 import { ConvexClientProvider } from "./ConvexClientProvider";
 
+export default function app({ Component, pageProps }) {
+  return (
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <ConvexClientProvider>
+        <Component {...pageProps} />
+      </ConvexClientProvider>
+    </ThemeProvider>
+  );
+}
 export const metadata: Metadata = {
   title: 'Us',
   description: 'A private space for two',
@@ -19,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className="bg-background text-foreground antialiased transition-colors duration-300">
         <ConvexClientProvider>{children}</ConvexClientProvider>
       </body>
