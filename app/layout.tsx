@@ -20,7 +20,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-white text-neutral-900 antialiased transition-colors duration-300">
+      <body className="bg-background text-foreground antialiased transition-colors duration-300">
         <ConvexClientProvider>{children}</ConvexClientProvider>
       </body>
     </html>
