@@ -367,7 +367,7 @@ export default function ChatScreen({
               isGirl ? 'bg-rose-400 hover:bg-rose-500' : 'bg-emerald-500 hover:bg-emerald-600'
             }`}
           >
-            <Send className="h-4 w-4 text-white" />
+            <Send className="h-4 w-4 text-black" />
           </button>
         </div>
       </div>
