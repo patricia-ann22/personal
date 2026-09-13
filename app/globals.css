@@ -26,13 +26,26 @@
   --ring: 0 0% 3.9%;
   --radius: 0.75rem;
 }
+/* Dark Mode Tokens */
+.dark {
+  --background: 0 0% 3.9%;
+  --foreground: 0 0% 98%;
+  --card: 0 0% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --primary: 0 0% 98%;
+  --primary-foreground: 0 0% 9%;
+  --muted: 0 0% 14.9%;
+  --muted-foreground: 0 0% 63.9%;
+  --border: 0 0% 14.9%;
+  --input: 0 0% 14.9%;
+}
 
 @layer base {
   * {
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground transition-colors duration-300;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -54,11 +67,11 @@
   background: transparent;
 }
 .chat-scroll::-webkit-scrollbar-thumb {
-  background: hsl(0 0% 80%);
+  background: hsl(260, 11%, 95%);
   border-radius: 4px;
 }
 .chat-scroll::-webkit-scrollbar-thumb:hover {
-  background: hsl(0 0% 70%);
+  background: hsl(0, 18%, 97%);
 }
 
 /* Memory strip scrollbar — thin and subtle */
@@ -69,7 +82,7 @@
   background: transparent;
 }
 .memory-scroll::-webkit-scrollbar-thumb {
-  background: hsl(40 20% 80%);
+  background: hsl(154, 44%, 93%);
   border-radius: 3px;
 }
 
