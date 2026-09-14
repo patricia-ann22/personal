@@ -268,7 +268,7 @@ export default function ChatScreen({
                         className="max-w-full cursor-pointer rounded-xl"
                         onClick={() => setPreviewMedia(msg)}
                       />
-                      <span className="pointer-events-none absolute left-2 top-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10px] font-semibold text-white">
+                      <span className="pointer-events-none absolute left-2 top-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10px] font-semibold text-black">
                         <ImageIcon className="h-3 w-3" />
                         Photo
                       </span>
@@ -282,7 +282,7 @@ export default function ChatScreen({
                         playsInline
                         className="max-w-full rounded-xl"
                       />
-                      <span className="pointer-events-none absolute left-2 top-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10px] font-semibold text-white">
+                      <span className="pointer-events-none absolute left-2 top-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10px] font-semibold text-black">
                         <Video className="h-3 w-3" />
                         Video
                       </span>
