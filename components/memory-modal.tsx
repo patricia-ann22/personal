@@ -263,8 +263,7 @@ export default function MemoryModal({
                             <ImageIcon className="absolute bottom-1 right-1 h-3.5 w-3.5 rounded-sm bg-black/55 p-0.5 text-white" />
                           </div>
                         ) : mem.media_url && mem.media_type === 'video' ? (
-                          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-neutral-200">
-                            <Video className="h-5 w-5 text-neutral-500" />
+                          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-neutral-200">                            <Video className="h-5 w-5 text-neutral-500" />
                           </div>
                         ) : (
                           <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-neutral-200">
