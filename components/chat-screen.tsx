@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Send, ImageIcon, Video, Audio, Document, Gift, Plus, Trash2, Calendar } from 'lucide-react';
+import { Send, ImageIcon, Video, Gift, AudioLines, FileText, Plus, Trash2, Calendar } from 'lucide-react';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { UploadButton } from '@/utils/uploadthing';
@@ -201,11 +201,11 @@ export default function ChatScreen({
                     </div>
                   ) : mem.media_url && String(mem.media_type) === 'audio' ? (
                     <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md bg-neutral-100">
-                      <Audio className="h-3.5 w-3.5 text-neutral-500" />
+                      <AudioLines className="h-3.5 w-3.5 text-neutral-500" />
                     </div>
                   ) : mem.media_url && String(mem.media_type) === 'document' ? (
                     <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md bg-neutral-100">
-                      <Document className="h-3.5 w-3.5 text-neutral-500" />
+                      <FileText className="h-3.5 w-3.5 text-neutral-500" />
                     </div>
                   ) : (
                     <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md bg-neutral-100">
