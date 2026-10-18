@@ -340,7 +340,7 @@ export default function ChatScreen({
             }}
             onUploadError={() => setUploading(false)}
             appearance={{ button: 'flex items-center justify-center rounded-full bg-emerald-200 p-2 shadow-sm transition-transform active:scale-95' }}
-            content={{ button: <><ImageIcon /><span className="sr-only">Upload photo</span></>, allowedContent: '' }}
+            content={{ button: <ImageIcon />, allowedContent: '' }}
           />
           <UploadButton
             endpoint="mediaUploader"
@@ -351,7 +351,7 @@ export default function ChatScreen({
             }}
             onUploadError={() => setUploading(false)}
             appearance={{ button: 'flex items-center justify-center rounded-full bg-emerald-200 p-2 shadow-sm transition-transform active:scale-95' }}
-            content={{ button: <><Video /><span className="sr-only">Upload video</span></>, allowedContent: '' }}
+            content={{ button: <Video />, allowedContent: '' }}
           />
 
           <input
