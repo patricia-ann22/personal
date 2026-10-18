@@ -339,7 +339,7 @@ export default function ChatScreen({
               if (file) void addUploadedMessage(file.ufsUrl, file.type.startsWith('image/') ? 'image' : 'video');
             }}
             onUploadError={() => setUploading(false)}
-            appearance={{ button: 'flex items-center justify-center rounded-full bg-emerald-200 p-2 shadow-sm transition-transform active:scale-95' }}
+            appearance={{ button: 'flex items-center justify-center rounded-full bg-emerald-200 p-0.5 shadow-sm transition-transform active:scale-95' }}
             content={{ button: <ImageIcon />, allowedContent: '' }}
           />
           <UploadButton
@@ -350,7 +350,7 @@ export default function ChatScreen({
               if (file) void addUploadedMessage(file.ufsUrl, 'video');
             }}
             onUploadError={() => setUploading(false)}
-            appearance={{ button: 'flex items-center justify-center rounded-full bg-emerald-200 p-2 shadow-sm transition-transform active:scale-95' }}
+            appearance={{ button: 'flex items-center justify-center rounded-full bg-emerald-200 p-0.5 shadow-sm transition-transform active:scale-95' }}
             content={{ button: <Video />, allowedContent: '' }}
           />
 
