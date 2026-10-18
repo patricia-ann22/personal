@@ -192,15 +192,15 @@ export default function ChatScreen({
                 >
                   {mem.media_url && mem.media_type === 'image' ? (
                     <div className="relative flex-shrink-0">
-                      <img src={mem.media_url} alt="" className="h-7 w-7 rounded-md object-cover" />
+                      <img src={mem.media_url} alt="" className="h-5 w-5 rounded-md object-cover" />
                       <ImageIcon className="absolute bottom-0.5 right-0.5 h-2.5 w-2.5 rounded-sm bg-black/55 p-0.5 text-white" />
                     </div>
                   ) : mem.media_url && mem.media_type === 'video' ? (
-                    <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-neutral-100">
+                    <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md bg-neutral-100">
                       <Video className="h-3.5 w-3.5 text-neutral-500" />
                     </div>
                   ) : (
-                    <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-neutral-100">
+                    <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md bg-neutral-100">
                       <Calendar className="h-3.5 w-3.5 text-amber-400" />
                     </div>
                   )}
@@ -242,7 +242,7 @@ export default function ChatScreen({
                 <div className="w-7 flex-shrink-0">
                   {showAvatar && (
                     <div
-                      className={`flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold text-white ${
+                      className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-white ${
                         msg.sender === 'tough_honey' ? 'bg-rose-400' : 'bg-emerald-500'
                       } ${senderMeta.font}`}
                     >
