@@ -330,7 +330,7 @@ export default function ChatScreen({
 
       {/* Input bar */}
       <div className="border-t border-neutral-100 bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        <div className="mx-auto flex max-w-md items-center gap-0.5">
+        <div className="mx-auto flex max-w-md items-center gap-2">
           <UploadButton
             endpoint="mediaUploader"
             onUploadBegin={() => setUploading(true)}
