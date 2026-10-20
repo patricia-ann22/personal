@@ -330,7 +330,7 @@ export default function ChatScreen({
 
       {/* Input bar */}
       <div className="border-t border-neutral-100 bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        <div className="mx-auto flex max-w-md items-center gap-2">
+        <div className="mx-auto flex max-w-md items-center gap-0.5">
           <UploadButton
             endpoint="mediaUploader"
             onUploadBegin={() => setUploading(true)}
@@ -339,7 +339,7 @@ export default function ChatScreen({
               if (file) void addUploadedMessage(file.ufsUrl, file.type.startsWith('image/') ? 'image' : 'video');
             }}
             onUploadError={() => setUploading(false)}
-            appearance={{ button: 'flex items-center justify-center rounded-full bg-emerald-200 p-0.5 shadow-sm transition-transform active:scale-95' }}
+            appearance={{ button: 'flex items-center justify-center rounded-full bg-emerald-200 p-2 shadow-sm transition-transform active:scale-95' }}
             content={{ button: <ImageIcon />, allowedContent: '' }}
           />
           <UploadButton
@@ -350,7 +350,7 @@ export default function ChatScreen({
               if (file) void addUploadedMessage(file.ufsUrl, 'video');
             }}
             onUploadError={() => setUploading(false)}
-            appearance={{ button: 'flex items-center justify-center rounded-full bg-emerald-200 p-0.5 shadow-sm transition-transform active:scale-95' }}
+            appearance={{ button: 'flex items-center justify-center rounded-full bg-emerald-200 p-2 shadow-sm transition-transform active:scale-95' }}
             content={{ button: <Video />, allowedContent: '' }}
           />
 
